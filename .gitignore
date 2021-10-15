@@ -37,3 +37,27 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+data/GTFS/S_20211012.zip
+data/GTFS/SW_20211012.zip
+data/GTFS/rail_20211009.zip
+data/GTFS/NW_20211012.zip
+data/GTFS/NE_20211012.zip
+data/GTFS/L_20211012.zip
+data/GTFS/EM_20211012.zip
+data/GTFS/EA_20211012.zip
+data/NTEM/EAST_280217_72.zip
+data/NTEM/EM_280217_72.zip
+data/NTEM/LON_280217_72.zip
+data/NTEM/NE_140217_72.mdb
+data/NTEM/NE_280217_72.zip
+data/NTEM/NTEM72-documentation.zip
+data/NTEM/NW_280217_72.zip
+data/NTEM/SCOTLAND_280217_72.zip
+data/NTEM/SE_280217_72.zip
+data/NTEM/shp-format-version-7-december-2016.zip
+data/NTEM/SW_280217_72.zip
+data/NTEM/TEMPro-Version-7.2-Setup-and-Docs.zip
+data/NTEM/WALES_280217_72.zip
+data/NTEM/WM_280217_72.zip
+data/NTEM/YH_280217_72.zip
+data/GTFS/W_20211012.zip
