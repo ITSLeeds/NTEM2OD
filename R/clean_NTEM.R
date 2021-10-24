@@ -1,6 +1,9 @@
 # Read in NTEM Data
 
 
+
+
+
 read_tempro_sheet <- function(file, mode_type){
   
   mode_table = data.frame(mode = c("walk","cycle","drive","passenger","bus","rail","combined"),
@@ -90,22 +93,22 @@ read_tempro_file <- function(file){
   return(all)
 }
 
-E <- read_tempro_file("data/TEMPRO/E-OD-Day.xlsx")
-EM <- read_tempro_file("data/TEMPRO/EM-OD-Day.xlsx")
-L <- read_tempro_file("data/TEMPRO/L-OD-Day.xlsx")
-NE <- read_tempro_file("data/TEMPRO/NE-OD-Day.xlsx")
-NW <- read_tempro_file("data/TEMPRO/NW-OD-Day.xlsx")
-S <- read_tempro_file("data/TEMPRO/S-OD-Day.xlsx")
-SE <- read_tempro_file("data/TEMPRO/SE-OD-Day.xlsx")
-SW <- read_tempro_file("data/TEMPRO/SW-OD-Day.xlsx")
-W <- read_tempro_file("data/TEMPRO/W-OD-Day.xlsx")
-WM <- read_tempro_file("data/TEMPRO/WM-OD-Day.xlsx")
-Y <- read_tempro_file("data/TEMPRO/Y-OD-Day.xlsx")
-
-GB <- dplyr::bind_rows(list(E,EM,L,NE,NW,S,SE,SW,W,WM,Y))
-rm(E,EM,L,NE,NW,S,SE,SW,W,WM,Y)
-
-saveRDS(GB,"data/TEMPRO/GB-OA-Day-Baseline.Rds")
+# E <- read_tempro_file("data/TEMPRO/E-OD-Day.xlsx")
+# EM <- read_tempro_file("data/TEMPRO/EM-OD-Day.xlsx")
+# L <- read_tempro_file("data/TEMPRO/L-OD-Day.xlsx")
+# NE <- read_tempro_file("data/TEMPRO/NE-OD-Day.xlsx")
+# NW <- read_tempro_file("data/TEMPRO/NW-OD-Day.xlsx")
+# S <- read_tempro_file("data/TEMPRO/S-OD-Day.xlsx")
+# SE <- read_tempro_file("data/TEMPRO/SE-OD-Day.xlsx")
+# SW <- read_tempro_file("data/TEMPRO/SW-OD-Day.xlsx")
+# W <- read_tempro_file("data/TEMPRO/W-OD-Day.xlsx")
+# WM <- read_tempro_file("data/TEMPRO/WM-OD-Day.xlsx")
+# Y <- read_tempro_file("data/TEMPRO/Y-OD-Day.xlsx")
+# 
+# GB <- dplyr::bind_rows(list(E,EM,L,NE,NW,S,SE,SW,W,WM,Y))
+# rm(E,EM,L,NE,NW,S,SE,SW,W,WM,Y)
+# 
+# saveRDS(GB,"data/TEMPRO/GB-OA-Day-Baseline.Rds")
 
  
 
