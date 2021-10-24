@@ -61,3 +61,5 @@ data/NTEM/WALES_280217_72.zip
 data/NTEM/WM_280217_72.zip
 data/NTEM/YH_280217_72.zip
 data/GTFS/W_20211012.zip
+otp_parallel_log.txt
+temp_naptan/Stops.csv
