@@ -21,13 +21,13 @@ ntem_cents <- ntem_cents[,"Zone_Code"]
 path_data = "D:/OneDrive - University of Leeds/Data/opentripplanner"
 path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-shaded.jar"
 
-nchunks = 38
+#nchunks = 38
 
-chunks <- split(1:nrow(ntem_cents), ceiling(seq_along(1:nrow(ntem_cents))/(7700/nchunks)))
+chunks <- split(1622:nrow(ntem_cents), ceiling(seq_along(1622:nrow(ntem_cents))/(100)))
 
 
 
-for(i in 1:nchunks){
+for(i in 39:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
@@ -36,7 +36,7 @@ for(i in 1:nchunks){
   
   log2 = otp_setup(path_opt,
                    path_data,
-                   memory = 115011,
+                   memory = 120011,
                    router = "great-britain-NTEM",
                    quiet = TRUE,
                    securePort = 8082, 
@@ -68,7 +68,7 @@ for(i in 1:nchunks){
                             fromID = fromPlace$Zone_Code,
                             toID = toPlace$Zone_Code,
                             mode = "CAR",
-                            ncores = 34)
+                            ncores = 12)
   
   message(Sys.time()," Killing OTP")
   
