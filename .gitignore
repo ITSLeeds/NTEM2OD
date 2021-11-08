@@ -251,3 +251,6 @@ data/ttmatrix/ttmatrix_walk_chunk_5_from_4001_to_5000.Rds
 data/ttmatrix/ttmatrix_walk_chunk_6_from_5001_to_6000.Rds
 data/ttmatrix/ttmatrix_walk_chunk_7_from_6001_to_7000.Rds
 data/ttmatrix/ttmatrix_walk_chunk_8_from_7001_to_7700.Rds
+data/GTFS/SE_20211012.zip
+data/GTFS/WM_20211012.zip
+data/GTFS/Y_20211012.zip
