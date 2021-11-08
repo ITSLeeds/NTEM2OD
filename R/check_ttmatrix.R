@@ -39,7 +39,7 @@ cents$id <- 1:7700
 
 #dir.create("tmp")
 #unzip("data/ttmatrix_drive_sample.zip", exdir = "tmp")
-files <- list.files("data", full.names = TRUE, pattern = "ttmatrix_drive_chunk_")
+files <- list.files("data/ttmatrix", full.names = TRUE, pattern = "ttmatrix_car_chunk_")
 
 res <- list()
 for(i in 1:length(files)){
@@ -67,7 +67,26 @@ cents2$matches[is.na(cents2$matches)] <- -1
 tm_shape(cents2) +
   tm_dots(col = "matches", style = "fixed", palette = c("black","red","orange","yellow","lightblue"),
           breaks = c(-1,0,2,5,100,4000),
-          scale = 2          )
+          scale = 1.5          )
+
+mat <- mat[,rownames(mat)]
+mat <- as.matrix(mat)
+matna <- !is.na(mat)
+csums <- colSums(matna)
+rsums <- rowSums(matna)
+
+csums <- data.frame(Zone_Code = names(csums), cols = csums, rows = rsums)
+csums$diff <- (csums$cols - csums$rows) / csums$rows
+hist(csums$diff)
+summary(csums$diff)
+cents2 <- left_join(cents, csums, by = "Zone_Code")
+
+tm_shape(cents2) +
+  tm_dots(col = "diff", 
+          palette =  "Spectral",
+          style = "fixed",
+          breaks = c(-400,-1,-0.5,-0.1,0.1,0.5,1,400),
+          scale = 1.5 )
 
 
 library(opentripplanner)

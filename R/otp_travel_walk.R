@@ -26,7 +26,7 @@ for(i in 1:length(chunks)){
   log2 = otp_setup(path_opt,
                    path_data,
                    memory = 120011,
-                   router = "great-britain-NTEM-drive",
+                   router = "great-britain-NTEM",
                    quiet = TRUE,
                    securePort = 8082, 
                    pointsets = TRUE,
@@ -39,7 +39,7 @@ for(i in 1:length(chunks)){
   
   for(j in 1:100){
     
-    otpcon <- try(otp_connect(router = "great-britain-NTEM-drive"), silent = TRUE)
+    otpcon <- try(otp_connect(router = "great-britain-NTEM"), silent = TRUE)
     if(class(otpcon)[1] == "try-error"){
       message("Round ",j," sleeping for another minute")
       Sys.sleep(60)
