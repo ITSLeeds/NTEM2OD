@@ -13,7 +13,7 @@ ntem_cents <- st_centroid(ntem_zone)
 ttwa <- read_sf("data/TTWA/TTWA_GB.gpkg")
 
 # Centroids
-cents <- read_sf("data/NTEM_centroids.gpkg")
+cents <- read_sf("data/NTEM/NTEM_centroids_mod.geojson")
 dists <- st_distance(cents)
 dim(dists)
 dists <- as.numeric(dists)
@@ -55,11 +55,11 @@ y[1] = 0.4
 
 decay_func <- function(x,a = 0.22,b = 0.1214){
   out <- (x^a) * exp(b * -x)
-  out[x == 0] <- 0.9
+  #out[x == 0] <- 0.9
   return(out)
 }
 
-model <- nls(y ~ decay_func(x,a,b,c,d), start=list(a=0.2,b=0.2,c=1,d=0.01))
+model <- nls(y ~ decay_func(x,a,b), start=list(a=0.2,b=0.2))
 model
 
 plot(x,y,xlim = c(0,100)) +
