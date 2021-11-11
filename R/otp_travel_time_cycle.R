@@ -32,7 +32,8 @@ for(i in 1:length(chunks)){
                    quiet = TRUE,
                    securePort = 8082, 
                    pointsets = TRUE,
-                   analyst = TRUE)
+                   analyst = TRUE,
+                   open_browser = FALSE)
   
   fromPlace <- ntem_cents[chunk_sub, ]
   toPlace <- ntem_cents
@@ -59,8 +60,8 @@ for(i in 1:length(chunks)){
                             fromID = fromPlace$Zone_Code,
                             toID = toPlace$Zone_Code,
                             mode = c("BICYCLE","FERRY"),
-                            maxWalkDistance = 2000,
-                            ncores = 12)
+                            maxWalkDistance = 90000,
+                            ncores = 25)
   
   message(Sys.time()," Checking for failed routes")
   
@@ -74,7 +75,7 @@ for(i in 1:length(chunks)){
                                fromID = fromPlace2$Zone_Code,
                                toID = toPlace$Zone_Code,
                                mode = c("BICYCLE","FERRY"),
-                               maxWalkDistance = 2000,
+                               maxWalkDistance = 90000,
                                ncores = 1)
     
     mat_sub <- cbind(mat_sub, mat_sub2)

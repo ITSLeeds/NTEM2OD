@@ -32,7 +32,8 @@ for(i in 26:length(chunks)){
                    quiet = TRUE,
                    securePort = 8082, 
                    pointsets = TRUE,
-                   analyst = TRUE)
+                   analyst = TRUE,
+                   open_browser = FALSE)
   
   fromPlace <- ntem_cents[chunk_sub, ]
   toPlace <- ntem_cents

@@ -32,7 +32,8 @@ for(i in 9:length(chunks)){
                    quiet = TRUE,
                    securePort = 8082, 
                    pointsets = TRUE,
-                   analyst = TRUE)
+                   analyst = TRUE,
+                   open_browser = FALSE)
   
   fromPlace <- ntem_cents[chunk_sub, ]
   toPlace <- ntem_cents
@@ -59,8 +60,8 @@ for(i in 9:length(chunks)){
                             fromID = fromPlace$Zone_Code,
                             toID = toPlace$Zone_Code, 
                             date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                            mode = c("WALK","BUS"),
-                            maxWalkDistance = 2000,
+                            mode = c("WALK","BUS","FERRY"),
+                            maxWalkDistance = 20000,
                             ncores = 12)
   
   message(Sys.time()," Checking for failed routes")
@@ -75,8 +76,8 @@ for(i in 9:length(chunks)){
                                fromID = fromPlace2$Zone_Code,
                                toID = toPlace$Zone_Code,
                                date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                               mode = c("WALK","BUS"),
-                               maxWalkDistance = 2000,
+                               mode = c("WALK","BUS","FERRY"),
+                               maxWalkDistance = 20000,
                                ncores = 1)
     
     if(ncol(mat_sub2) > 0){

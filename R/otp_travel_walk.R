@@ -30,7 +30,8 @@ for(i in 1:length(chunks)){
                    quiet = TRUE,
                    securePort = 8082, 
                    pointsets = TRUE,
-                   analyst = TRUE)
+                   analyst = TRUE,
+                   open_browser = FALSE)
   
   fromPlace <- ntem_cents[chunk_sub, ]
   toPlace <- ntem_cents
@@ -57,8 +58,27 @@ for(i in 1:length(chunks)){
                             fromID = fromPlace$Zone_Code,
                             toID = toPlace$Zone_Code,
                             mode = c("WALK","FERRY"),
-                            maxWalkDistance = 20000,
+                            maxWalkDistance = 90000,
                             ncores = 12)
+  
+  message(Sys.time()," Checking for failed routes")
+  
+  fromPlace2 <- fromPlace[!fromPlace$Zone_Code %in% colnames(mat_sub),]
+  
+  if(nrow(fromPlace2) > 0 ){
+    mat_sub2 <- otp_traveltime(otpcon, 
+                               path_data = path_data,
+                               fromPlace = fromPlace2,
+                               toPlace = toPlace,
+                               fromID = fromPlace2$Zone_Code,
+                               toID = toPlace$Zone_Code,
+                               mode = c("WALK","FERRY"),
+                               maxWalkDistance = 90000,
+                               ncores = 1)
+    
+    mat_sub <- cbind(mat_sub, mat_sub2)
+    
+  }
   
   message(Sys.time()," Killing OTP")
   
@@ -97,5 +117,5 @@ cents2 <- left_join(ntem_cents, csums, by = "Zone_Code")
 cents2$matches[is.na(cents2$matches)] <- -1
 tm_shape(cents2[cents2$matches < 15,]) +
   tm_dots(col = "matches", style = "fixed", palette = c("black","red","orange","yellow","lightblue"),
-          breaks = c(-1,0,2,5,10,300),
+          breaks = c(-1,0,2,5,10,400),
           scale = 2)
