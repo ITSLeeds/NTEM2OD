@@ -4,7 +4,7 @@ library(tmap)
 library(dplyr)
 tmap_mode("view")
 
-ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered.geojson")
+ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered_rail.geojson")
 
 path_data = "D:/OneDrive - University of Leeds/Data/opentripplanner"
 path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-shaded.jar"
@@ -40,7 +40,7 @@ for(j in 1:100){
 
 message(Sys.time()," Starting routing")
 
-for(i in 41:length(chunks)){
+for(i in 1:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
@@ -54,7 +54,7 @@ for(i in 41:length(chunks)){
                      fromID = fromPlace_sub$Zone_Code,
                      toID = toPlace_sub$Zone_Code, 
                      date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                     mode = c("WALK","BUS","FERRY"),
+                     mode = c("WALK","TRAM","RAIL","SUBWAY","FERRY"),
                      maxWalkDistance = 10000,
                      ncores = 25,
                      distance_balance = TRUE,
@@ -62,12 +62,10 @@ for(i in 41:length(chunks)){
   
   message(Sys.time()," Saving Results")
   
-  saveRDS(routes, paste0("data/ttmatrix/routes_bus_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
+  saveRDS(routes, paste0("data/ttmatrix/routes_rail_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
   rm(routes, toPlace_sub, fromPlace_sub)
   
 }
-
-
 
 
 message(Sys.time()," Killing OTP")
@@ -76,7 +74,7 @@ otp_stop(warn = FALSE)
 
 
 # Read in routes
-files <- list.files("data/ttmatrix/", pattern = "routes_bus_chunk_", full.names = TRUE)
+files <- list.files("data/ttmatrix/", pattern = "routes_rail_chunk_", full.names = TRUE)
 
 res <- list()
 for(i in 1:length(files)){
@@ -91,12 +89,12 @@ res <- bind_rows(res)
 mat <- stplanr::od_to_odmatrix(res)
 mat <- t(mat)
 
-cents2 <- left_join(ntem_cluster, res[res$fromPlace == "E02005673", ], by = c("Zone_Code" = "toPlace"))
+cents2 <- left_join(ntem_cluster, res[res$fromPlace == "W02000265", ], by = c("Zone_Code" = "toPlace"))
 cents2$duration <- cents2$duration / 3600
 
 tm_shape(cents2) +
   tm_dots(col = "duration") +
-  tm_shape(cents2[cents2$Zone_Code == "E02005673", ]) +
+  tm_shape(cents2[cents2$Zone_Code == "W02000265", ]) +
   tm_dots(col = "red")
 
 
