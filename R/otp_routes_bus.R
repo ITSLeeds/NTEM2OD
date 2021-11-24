@@ -40,7 +40,7 @@ for(j in 1:100){
 
 message(Sys.time()," Starting routing")
 
-for(i in 41:length(chunks)){
+for(i in 59:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
@@ -62,7 +62,7 @@ for(i in 41:length(chunks)){
   
   message(Sys.time()," Saving Results")
   
-  saveRDS(routes, paste0("data/ttmatrix/routes_bus_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
+  saveRDS(routes, paste0("data/ttmatrix/routes_bus_v2_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
   rm(routes, toPlace_sub, fromPlace_sub)
   
 }
@@ -76,7 +76,7 @@ otp_stop(warn = FALSE)
 
 
 # Read in routes
-files <- list.files("data/ttmatrix/", pattern = "routes_bus_chunk_", full.names = TRUE)
+files <- list.files("data/ttmatrix/", pattern = "routes_bus_v2_chunk_", full.names = TRUE)
 
 res <- list()
 for(i in 1:length(files)){
@@ -91,12 +91,12 @@ res <- bind_rows(res)
 mat <- stplanr::od_to_odmatrix(res)
 mat <- t(mat)
 
-cents2 <- left_join(ntem_cluster, res[res$fromPlace == "E02005673", ], by = c("Zone_Code" = "toPlace"))
+cents2 <- left_join(ntem_cluster, res[res$fromPlace == "E02004004", ], by = c("Zone_Code" = "toPlace"))
 cents2$duration <- cents2$duration / 3600
 
 tm_shape(cents2) +
   tm_dots(col = "duration") +
-  tm_shape(cents2[cents2$Zone_Code == "E02005673", ]) +
+  tm_shape(cents2[cents2$Zone_Code == "E02004004", ]) +
   tm_dots(col = "red")
 
 

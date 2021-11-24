@@ -6,7 +6,7 @@ path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-sha
 
 # log1 = otp_build_graph(path_opt,
 #                        path_data,
-#                        memory = 80000,
+#                        memory = 90000,
 #                        router = "great-britain-NTEM",
 #                        quiet = FALSE)
 

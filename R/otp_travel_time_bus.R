@@ -18,7 +18,7 @@ path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-sha
 
 chunks <- split(1:nrow(ntem_cents), ceiling(seq_along(1:nrow(ntem_cents))/(100)))
 
-for(i in 9:length(chunks)){
+for(i in 1:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
@@ -109,7 +109,7 @@ for(i in 1:length(files)){
 }
 
 mat <- res[[1]]
-for(i in 2:length(res)){
+for(i in 2:length(files)){
   mat <- cbind(mat, res[[i]])
 }
 
@@ -132,7 +132,10 @@ tm_shape(cents2[cents2$matches > 0,]) +
           n = 20)
 
 
-mat_sel <- mat[,"E02005120", drop = FALSE]
-mat_sel <- mat_sel[!is.na(mat_sel$E02005120),,drop = FALSE]
+mat_sel <- mat[,"E02003150", drop = FALSE]
+#mat_sel <- mat_sel[!is.na(mat_sel$E02005120),,drop = FALSE]
 
-qtm(ntem_cents[ntem_cents$Zone_Code %in% rownames(mat_sel), ])
+cents2$times <- mat_sel$E02003150
+
+qtm(cents2, dots.col = "times", palette = "Spectral",
+    n = 20)

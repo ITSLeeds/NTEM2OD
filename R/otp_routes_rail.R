@@ -86,8 +86,76 @@ for(i in 1:length(files)){
 }
 res <- bind_rows(res)
 
-mat <- stplanr::od_to_odmatrix(res)
-mat <- t(mat)
+mat_route <- data.frame(fromPlace = rep(unique(res$fromPlace), each = length(unique(res$toPlace))),
+                        toPlace = rep(unique(res$toPlace), times = length(unique(res$fromPlace))))
+mat_route <- left_join(mat_route, res, by = c("fromPlace","toPlace"))
+mat_route <- matrix(mat_route$duration, ncol = length(unique(res$fromPlace)),
+                    dimnames = list(unique(mat_route$toPlace), unique(mat_route$fromPlace)))
+
+#mat_route[56,87, drop = FALSE]
+#res[res$fromPlace == "S99900452" & res$toPlace == "E02002702",]
+#mat_route[mat_route$fromPlace == "W02000117" & mat_route$toPlace == "E02000059",]
+
+# mat_route <- stplanr::od_to_odmatrix(res)
+# mat_route <- t(mat_route)
+
+# Read tin ttmatrix
+files <- list.files("data/ttmatrix/", pattern = "ttmatrix_rail_chunk_", full.names = TRUE)
+
+res <- list()
+for(i in 1:length(files)){
+  res[[i]] <- readRDS(files[i])
+}
+
+mat_tt <- res[[1]]
+for(i in 2:length(res)){
+  mat_tt <- cbind(mat_tt, res[[i]])
+}
+mat_tt <- as.matrix(mat_tt)
+# Merge matrixes
+
+mat_na <- matrix(NA, nrow = nrow(mat_route), ncol = ncol(mat_tt) - ncol(mat_route))
+colnames(mat_na) <- colnames(mat_tt)[!colnames(mat_tt) %in% colnames(mat_route)]
+
+mat_route <- cbind(mat_route, mat_na)
+
+mat_na <- matrix(NA, ncol = ncol(mat_route), nrow = nrow(mat_tt) - nrow(mat_route))
+rownames(mat_na) <- rownames(mat_tt)[!rownames(mat_tt) %in% rownames(mat_route)]
+
+mat_route <- rbind(mat_route, mat_na)
+
+summary(as.numeric(mat_route))
+summary(as.numeric(mat_tt))
+
+mat_route <- mat_route[rownames(mat_tt), colnames(mat_tt)]
+summary(rownames(mat_tt) == rownames(mat_route))
+summary(colnames(mat_tt) == colnames(mat_route))
+mat <- ifelse(is.na(mat_tt), mat_route, mat_tt)
+summary(as.numeric(mat))
+
+newmat <- odmatrix_interpolate(mat, 1, 10) # 4h + long distance 2 hours
+
+
+
+
+cents <- read_sf("data/NTEM/NTEM_centroids_mod.geojson")
+col = "E02000655"
+
+times <- mat[col,]
+times <- data.frame(Zone_Code = names(times), duration = times)
+cents2 <- left_join(cents, times, by = c("Zone_Code"))
+tm_shape(cents2) +
+  tm_dots(col = "duration") +
+  tm_shape(cents2[cents2$Zone_Code == col, ]) +
+  tm_dots(col = "red")
+
+cents2$newtimes <- combined
+tm_shape(cents2) +
+  tm_dots(col = "newtimes") +
+  tm_shape(cents2[cents2$Zone_Code == col, ]) +
+  tm_dots(col = "red")
+
+
 
 cents2 <- left_join(ntem_cluster, res[res$fromPlace == "W02000265", ], by = c("Zone_Code" = "toPlace"))
 cents2$duration <- cents2$duration / 3600
@@ -110,4 +178,7 @@ ccount <- data.frame(Zone_Code = names(ccount), ccount = ccount)
 cents2 <- left_join(ntem_cluster, ccount, by = c("Zone_Code"))
 tm_shape(cents2) +
   tm_dots(col = "ccount")
+
+
+
 

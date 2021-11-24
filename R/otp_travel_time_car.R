@@ -18,7 +18,7 @@ path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-sha
 
 chunks <- split(1:nrow(ntem_cents), ceiling(seq_along(1:nrow(ntem_cents))/(100)))
 
-for(i in 26:length(chunks)){
+for(i in 21:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
