@@ -83,13 +83,13 @@ mat_inter2 <- function(col, mat, threshold){
 }
 
 
-foo = data.frame(id = names(times_to_midpoints), 
-                 before = times_to_midpoints, 
-                 after = rsum, 
-                 combined = combined)
-cents2 <- left_join(ntem_cents, foo, by = c("Zone_Code" = "id"))
-qtm(cents2, dots.col = "combined") +
-  qtm(ntem_cents[ntem_cents$Zone_Code == "E02005005",], dots.col = "red")
+# foo = data.frame(id = names(times_to_midpoints), 
+#                  before = times_to_midpoints, 
+#                  after = rsum, 
+#                  combined = combined)
+# cents2 <- left_join(ntem_cents, foo, by = c("Zone_Code" = "id"))
+# qtm(cents2, dots.col = "combined") +
+#   qtm(ntem_cents[ntem_cents$Zone_Code == "E02005005",], dots.col = "red")
 
 # newmat <- odmatrix_interpolate(mat, 30, 10) # 4h
 # newmat2 <- odmatrix_interpolate(newmat, 30, 10) # 8h

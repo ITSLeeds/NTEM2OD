@@ -1,0 +1,296 @@
+# Inputs
+library(dplyr)
+library(tmap)
+library(sf)
+tmap_mode("view")
+
+
+ttmat_text = "ttmatrix_rail_chunk_"
+routes_text = "routes_rail_"
+out_text = "data/ttmatrix/final/rail.csv"
+threshold = 1
+with_routes = TRUE
+
+if(with_routes){
+  # Read in routes
+  files <- list.files("data/ttmatrix/", pattern = routes_text, full.names = TRUE)
+  
+  res <- list()
+  for(i in 1:length(files)){
+    sub <- readRDS(files[i])
+    sub <- sub %>% 
+      group_by(fromPlace, toPlace) %>%
+      summarise(duration = min(duration))
+    res[[i]] <- sub
+  }
+  res <- bind_rows(res)
+  
+  mat_route <- data.frame(fromPlace = rep(unique(res$fromPlace), each = length(unique(res$toPlace))),
+                          toPlace = rep(unique(res$toPlace), times = length(unique(res$fromPlace))))
+  mat_route <- left_join(mat_route, res, by = c("fromPlace","toPlace"))
+  mat_route <- t(stplanr::od_to_odmatrix(mat_route))
+  
+  # mat_route <- matrix(mat_route$duration, ncol = length(unique(res$fromPlace)),
+  #                     dimnames = list(unique(mat_route$toPlace), unique(mat_route$fromPlace)))
+}
+
+# Read tin ttmatrix
+files <- list.files("data/ttmatrix/", pattern = ttmat_text, full.names = TRUE)
+
+res <- list()
+for(i in 1:length(files)){
+  res[[i]] <- readRDS(files[i])
+}
+
+mat_tt <- res[[1]]
+for(i in 2:length(res)){
+  mat_tt_sub <- res[[i]]
+  mat_tt_sub <- mat_tt_sub[rownames(mat_tt),]
+  mat_tt <- cbind(mat_tt, mat_tt_sub)
+}
+mat_tt <- as.matrix(mat_tt)
+
+if(with_routes){
+  # Merge matrixes
+  mat_na <- matrix(NA, nrow = nrow(mat_route), ncol = ncol(mat_tt) - ncol(mat_route))
+  colnames(mat_na) <- colnames(mat_tt)[!colnames(mat_tt) %in% colnames(mat_route)]
+  
+  mat_route <- cbind(mat_route, mat_na)
+  
+  mat_na <- matrix(NA, ncol = ncol(mat_route), nrow = nrow(mat_tt) - nrow(mat_route))
+  rownames(mat_na) <- rownames(mat_tt)[!rownames(mat_tt) %in% rownames(mat_route)]
+  
+  mat_route <- rbind(mat_route, mat_na)
+  
+  summary(as.numeric(mat_route))
+  summary(as.numeric(mat_tt))
+  
+  mat_route <- mat_route[rownames(mat_tt), colnames(mat_tt)]
+  summary(rownames(mat_tt) == rownames(mat_route))
+  summary(colnames(mat_tt) == colnames(mat_route))
+  mat <- ifelse(is.na(mat_tt), mat_route, mat_tt)
+  mat[is.na(mat)] <- -1
+  mat_route[is.na(mat_route)] <- 99999999
+  mat2 <- ifelse(mat_route < mat, mat_route, mat)
+  mat2[mat2 == -1] <- NA
+  mat2[mat2 == 999999] <- NA
+  summary(as.numeric(mat2) == as.numeric(mat))
+  mat = mat2
+} else {
+  mat = mat_tt
+}
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(mat), ntem$Zone_Code),]
+ntem$times <- mat[,"E02001731"] / 60
+qtm(ntem, dots.col = "times") + qtm(ntem[ntem$Zone_Code == "E02001731",])
+
+
+
+source("R/batch_check_travel_times.R")
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(mat), ntem$Zone_Code),]
+ntem$times <- mat[,"E02001765"]
+qtm(ntem, dots.col = "times")
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(colnames(mat), ntem$Zone_Code),]
+csum <- colSums(is.na(mat))
+ntem$csum <- csum
+ntem <- ntem[ntem$csum > 7690,]
+qtm(ntem, dots.col = "csum")
+
+
+newmat <- odmatrix_interpolate(mat, threshold) # 4h
+newmat <- odmatrix_interpolate(newmat, threshold) # 8h
+newmat <- odmatrix_interpolate(newmat, threshold) # 16h
+newmat <- odmatrix_interpolate(newmat, threshold) # 32h
+newmat <- odmatrix_interpolate(newmat, threshold) # 64h
+newmat4 <- odmatrix_interpolate(newmat, threshold) # 128h
+nmna <- as.logical(is.na(newmat4))
+message(sum(nmna)/length(nmna))
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat4), ntem$Zone_Code),]
+csum <- colSums(is.na(newmat4))
+ntem$csum <- csum
+#ntem <- ntem[ntem$csum > min(ntem$csum, na.rm = TRUE),]
+qtm(ntem, dots.col = "csum")
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat4), ntem$Zone_Code),]
+ntem$times <- newmat4[,"E02006273"]
+qtm(ntem, dots.col = "times")
+
+# Remove Walk only times
+
+mat_walk <- read.csv("data/ttmatrix/final/walk.csv") 
+rownames(mat_walk) <- mat_walk[,1]
+mat_walk$X <- NULL
+mat_walk <- as.matrix(mat_walk)
+
+mat_walk <- mat_walk[rownames(newmat4),colnames(newmat4)]
+summary(rownames(mat_walk) == rownames(newmat4))
+summary(colnames(mat_walk) == colnames(newmat4))
+newmat5 <- ifelse(newmat4 >= mat_walk, NA, newmat4)
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat5), ntem$Zone_Code),]
+csum <- colSums(is.na(newmat5))
+ntem$csum_new <- csum
+ntem$csum_old <- colSums(is.na(newmat4))
+ntem$csum_diff <- ntem$csum_old - ntem$csum_new
+ntem <- ntem[ntem$csum_diff != 0,]
+qtm(ntem, dots.col = "csum_diff")
+
+write.csv(newmat5,out_text, na = "")
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat4), ntem$Zone_Code),]
+ntem$times <- newmat5[,"E02005517"] / 3600
+qtm(ntem, dots.col = "times") + qtm(ntem[ntem$Zone_Code == "E02005517",])
+
+
+# 
+# # Fixes for the Islands
+# ferry_fix <- function(old, new, extra){
+#   col <- newmat4[,old]
+#   col <- ifelse(is.na(col), newmat4[,new] + extra, col)
+#   col
+# }
+# 
+# # Isle of Scilly
+# newmat4[,"E02006781"] <- ferry_fix("E02006781","E02003949", 9900)
+# newmat4[,"E02003949"] <- ferry_fix("E02003949","E02006781", 9900)
+# 
+# # Outer Hebrides
+# newmat4[,"S99900328"] <- ferry_fix("S99900328","S99900119", 8400)
+# newmat4[,"S99900498"] <- ferry_fix("S99900498","S99900119", 19380)
+# newmat4[,"S99900499"] <- ferry_fix("S99900499","S99900119", 20820)
+# newmat4[,"S99900207"] <- ferry_fix("S99900207","S99900119", 20820)
+# 
+# newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900328", 8400)
+# newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900498", 19380)
+# newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900499", 20820)
+# newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900207", 20820)
+# 
+# # Isle Of Wight
+# newmat4[,"E02003592"] <- ferry_fix("E02003592","E02003547", 4680)
+# newmat4[,"E02003593"] <- ferry_fix("E02003593","E02003547", 4680)
+# newmat4[,"E02003591"] <- ferry_fix("E02003591","E02003547", 4680)
+# newmat4[,"E02003588"] <- ferry_fix("E02003588","E02003547", 4680)
+# newmat4[,"E02003589"] <- ferry_fix("E02003589","E02003547", 4680)
+# newmat4[,"E02003582"] <- ferry_fix("E02003582","E02003547", 4680)
+# newmat4[,"E02003581"] <- ferry_fix("E02003581","E02003547", 4680)
+# newmat4[,"E02003583"] <- ferry_fix("E02003583","E02003547", 4680)
+# newmat4[,"E02003585"] <- ferry_fix("E02003585","E02003547", 4680)
+# newmat4[,"E02003586"] <- ferry_fix("E02003586","E02003547", 4680)
+# newmat4[,"E02003584"] <- ferry_fix("E02003584","E02003547", 4680)
+# newmat4[,"E02003587"] <- ferry_fix("E02003587","E02003547", 4680)
+# newmat4[,"E02003590"] <- ferry_fix("E02003590","E02003547", 4680)
+# newmat4[,"E02003594"] <- ferry_fix("E02003594","E02003547", 4680)
+# newmat4[,"E02003595"] <- ferry_fix("E02003595","E02003547", 4680)
+# newmat4[,"E02003596"] <- ferry_fix("E02003596","E02003547", 4680)
+# newmat4[,"E02003597"] <- ferry_fix("E02003597","E02003547", 4680)
+# newmat4[,"E02003598"] <- ferry_fix("E02003598","E02003547", 4680)
+# 
+# newmat4[,"E02003547"] <- ferry_fix("E02003547","E02003585", 4680)
+# 
+# #Shetland
+# newmat4[,"S99900179"] <- ferry_fix("S99900179","S99900180", 1560)
+
+newmat5 <- odmatrix_interpolate(newmat4, 1) # Final Pass
+nmna <- as.logical(is.na(newmat5))
+message(sum(nmna)/length(nmna))
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat5), ntem$Zone_Code),]
+csum <- colSums(is.na(newmat5))
+ntem$csum <- csum
+ntem <- ntem[ntem$csum > min(ntem$csum, na.rm = TRUE),]
+qtm(ntem, dots.col = "csum")
+
+
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+ntem <- ntem[match(rownames(newmat5), ntem$Zone_Code),]
+ntem$times <- newmat5[,"E02005948"]
+qtm(ntem, dots.col = "times")
+
+
+write.csv(newmat5,out_text)
+# 
+# # fill in with reverse direction
+# 
+# mat_t <- t(newmat5)
+# newmat6 <- ifelse(is.na(newmat5), mat_t, newmat5)
+# 
+# # ferry_fix <- function(old, new, extra){
+# #   col <- newmat6[,old]
+# #   col <- ifelse(is.na(col), newmat6[,new] + extra, col)
+# #   col
+# # }
+# # 
+# # nmna <- as.logical(is.na(newmat6))
+# # message(sum(nmna)/length(nmna))
+# # csum <- colSums(is.na(newmat6))
+# # csum[csum > 2]
+# # ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+# # ntem <- ntem[match(rownames(newmat6), ntem$Zone_Code),]
+# # ntem$csum <- csum
+# # ntem <- ntem[ntem$csum > 2,]
+# # qtm(ntem, dots.col = "csum")
+# # 
+# # newmat6[,"S99900179"] <- ferry_fix("S99900179","S99900180", 1560)
+# # 
+# # mat_t <- t(newmat6)
+# # newmat7 <- ifelse(is.na(newmat6), mat_t, newmat6)
+# newmat8 <- odmatrix_interpolate(newmat6, 1) # Final Pass
+# 
+# 
+# ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+# ntem <- ntem[match(rownames(newmat8), ntem$Zone_Code),]
+# csum <- colSums(is.na(newmat8))
+# ntem$csum <- csum
+# ntem <- ntem[ntem$csum > min(ntem$csum, na.rm = TRUE),]
+# qtm(ntem, dots.col = "csum")
+# 
+# 
+# ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+# ntem <- ntem[match(rownames(newmat8), ntem$Zone_Code),]
+# ntem$times <- newmat8[,"E02003941"]
+# qtm(ntem, dots.col = "times") +
+#   qtm(ntem[ntem$Zone_Code == "E02003941",], dots.col = "red")
+# 
+# write.csv(newmat8,out_text)
+# 
+# 
+# nmna <- as.logical(is.na(newmat7))
+# message(sum(nmna)/length(nmna))
+# 
+# csum <- colSums(is.na(newmat7))
+# 
+# write.csv(newmat7,out_text)
+# 
+# 
+# # check for missing
+# ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+# ntem <- ntem[match(rownames(newmat7), ntem$Zone_Code),]
+# 
+# 
+# ntem$times <- newmat8[,"E02006298"]
+# qtm(ntem, dots.col = "times")
+# 
+# csum <- colSums(is.na(newmat7))
+# ntem$csum <- csum[match(ntem$Zone_Code, names(csum))]
+# 
+# rsum <- rowSums(is.na(newmat8))
+# ntem$rsum <- rsum[match(ntem$Zone_Code, names(rsum))]
+# 
+# tm_shape(ntem) +
+# tm_dots(col = "rsum", style = "fixed", breaks = c(0,33,50,100,7699,7700))
+# 
+# 
+# rsum <- rowSums(is.na(newmat7))
+# rsum <- rsum[rsum > 0] 
+# qtm(ntem[ntem$Zone_Code %in% names(rsum),])

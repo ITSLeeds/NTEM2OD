@@ -28,8 +28,9 @@ library(OSMtools)
 
 osmt_convert(file = "D:/OneDrive - University of Leeds/Data/opentripplanner/graphs/great-britain-NTEM-drive/great-britain-latest.osm.pbf", format_out = "o5m")
 osmt_filter(file = "D:/OneDrive - University of Leeds/Data/opentripplanner/graphs/great-britain-NTEM-drive/great-britain-latest.osm.o5m", 
+            keep = "highway",
             drop_tags = "cycleway",
-            path_out = "D:/OneDrive - University of Leeds/Data/opentripplanner/graphs/great-britain-NTEM-drive/great-britain-nocycleway.osm.o5m")
+            path_out = "D:/OneDrive - University of Leeds/Data/opentripplanner/graphs/great-britain-NTEM-drive/great-britain-nocycleway.osm")
 
 osmt_convert(file = "D:/OneDrive - University of Leeds/Data/opentripplanner/graphs/great-britain-NTEM-drive/great-britain-nocycleway.osm.o5m", format_out = "pbf")
 

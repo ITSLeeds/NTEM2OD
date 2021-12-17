@@ -4,7 +4,7 @@ library(tmap)
 library(dplyr)
 tmap_mode("view")
 
-ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered_rail.geojson")
+#ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered_rail.geojson")
 
 path_data = "D:/OneDrive - University of Leeds/Data/opentripplanner"
 path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-shaded.jar"
@@ -12,7 +12,7 @@ path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-sha
 
 log2 = otp_setup(path_opt,
                  path_data,
-                 memory = 120011,
+                 memory = 220011,
                  router = "great-britain-NTEM",
                  quiet = TRUE,
                  securePort = 8082,
@@ -21,8 +21,11 @@ log2 = otp_setup(path_opt,
 
 message(Sys.time()," Sleeping during OTP setup")
 
-toPlace   = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), times = nrow(ntem_cluster)),]
-fromPlace = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), each  = nrow(ntem_cluster)),]
+# toPlace   = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), times = nrow(ntem_cluster)),]
+# fromPlace = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), each  = nrow(ntem_cluster)),]
+
+fromPlace = st_read("data/NTEM/NTEM_centroids_rail_from.geojson")
+toPlace = st_read("data/NTEM/NTEM_centroids_rail_to.geojson")
 
 chunks <- split(1:nrow(toPlace), ceiling(seq_along(1:nrow(toPlace))/(2000)))
 
@@ -55,8 +58,8 @@ for(i in 1:length(chunks)){
                      toID = toPlace_sub$Zone_Code, 
                      date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
                      mode = c("WALK","TRAM","RAIL","SUBWAY","FERRY"),
-                     maxWalkDistance = 10000,
-                     ncores = 25,
+                     maxWalkDistance = 5000,
+                     ncores = 30,
                      distance_balance = TRUE,
                      get_geometry = FALSE)
   
@@ -74,7 +77,7 @@ otp_stop(warn = FALSE)
 
 
 # Read in routes
-files <- list.files("data/ttmatrix/", pattern = "routes_rail_chunk_", full.names = TRUE)
+files <- list.files("data/ttmatrix/", pattern = "routes_rail_", full.names = TRUE)
 
 res <- list()
 for(i in 1:length(files)){

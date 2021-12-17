@@ -16,7 +16,7 @@ ntem_cents <- ntem_cents[,"Zone_Code"]
 path_data = "D:/OneDrive - University of Leeds/Data/opentripplanner"
 path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-shaded.jar"
 
-chunks <- split(1:nrow(ntem_cents), ceiling(seq_along(1:nrow(ntem_cents))/(1000)))
+chunks <- split(1:nrow(ntem_cents), ceiling(seq_along(1:nrow(ntem_cents))/(500)))
 
 for(i in 1:length(chunks)){
   chunk_sub <- chunks[[i]]
@@ -27,7 +27,7 @@ for(i in 1:length(chunks)){
   
   log2 = otp_setup(path_opt,
                    path_data,
-                   memory = 200001,
+                   memory = 200011,
                    router = "great-britain-NTEM",
                    quiet = TRUE,
                    securePort = 8082, 
@@ -60,10 +60,9 @@ for(i in 1:length(chunks)){
                             fromID = fromPlace$Zone_Code,
                             toID = toPlace$Zone_Code, 
                             date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                            mode = c("WALK","RAIL","SUBWAY",
-                                     "TRAM", "FERRY"),
-                            maxWalkDistance = 10000,
-                            ncores = 30)
+                            mode = c("WALK","TRANSIT"),
+                            maxWalkDistance = 20000,
+                            ncores = 28)
   
   message(Sys.time()," Checking for failed routes")
   
@@ -77,9 +76,8 @@ for(i in 1:length(chunks)){
                                fromID = fromPlace2$Zone_Code,
                                toID = toPlace$Zone_Code,
                                date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                               mode = c("WALK","RAIL","SUBWAY",
-                                        "TRAM", "FERRY"),
-                               maxWalkDistance = 5000,
+                               mode = c("WALK","TRANSIT"),
+                               maxWalkDistance = 20000,
                                ncores = 1)
     
     if(ncol(mat_sub2) > 0){
@@ -94,7 +92,7 @@ for(i in 1:length(chunks)){
   
   message(Sys.time()," Saving Results")
   
-  saveRDS(mat_sub, paste0("data/ttmatrix/ttmatrix_rail_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
+  saveRDS(mat_sub, paste0("data/ttmatrix/ttmatrix_transit_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
   rm(otpcon, mat_sub)
   
 }
@@ -103,7 +101,7 @@ for(i in 1:length(chunks)){
 
 files <- list.files("data/ttmatrix", 
                     full.names = TRUE, 
-                    pattern = "ttmatrix_rail_chunk_")
+                    pattern = "ttmatrix_transit_chunk_")
 
 res <- list()
 for(i in 1:length(files)){
@@ -111,7 +109,7 @@ for(i in 1:length(files)){
 }
 
 mat <- res[[1]]
-for(i in 2:length(res)){
+for(i in 2:length(files)){
   mat <- cbind(mat, res[[i]])
 }
 
@@ -128,3 +126,22 @@ tm_shape(cents2) +
   tm_dots(col = "matches", style = "fixed", palette = c("black","red","orange","yellow","lightblue"),
           breaks = c(-1,0,2,5,10,300),
           scale = 2)
+
+tm_shape(cents2[cents2$matches > 0,]) +
+  tm_dots(col = "matches", palette = "Spectral",
+          n = 20)
+
+
+mat_sel <- mat[,"E02003150", drop = FALSE]
+#mat_sel <- mat_sel[!is.na(mat_sel$E02005120),,drop = FALSE]
+
+cents2$times <- mat_sel$E02003150
+
+tm_shape(cents2) +
+  tm_dots(col = "matches", palette = "Spectral",
+    style = "jenks", n = 20)
+
+foo = st_drop_geometry(cents2) %>%
+  group_by(region) %>%
+  summarise(max = max(matches, na.rm = TRUE),
+              min = min(matches, na.rm = TRUE))

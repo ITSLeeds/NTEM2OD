@@ -4,7 +4,7 @@ library(tmap)
 library(dplyr)
 tmap_mode("view")
 
-ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered_bus.geojson")
+ntem_cluster <- st_read("data/NTEM/NTEM_centroids_clustered.geojson")
 
 path_data = "D:/OneDrive - University of Leeds/Data/opentripplanner"
 path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-shaded.jar"
@@ -12,7 +12,7 @@ path_opt = "D:/OneDrive - University of Leeds/Data/opentripplanner/otp-1.5.0-sha
 
 log2 = otp_setup(path_opt,
                  path_data,
-                 memory = 220011,
+                 memory = 200011,
                  router = "great-britain-NTEM",
                  quiet = TRUE,
                  securePort = 8082,
@@ -40,7 +40,7 @@ for(j in 1:100){
 
 message(Sys.time()," Starting routing")
 
-for(i in 1:length(chunks)){
+for(i in 50:length(chunks)){
   chunk_sub <- chunks[[i]]
   
   message(Sys.time()," Stage ", i," from ",min(chunk_sub)," to ",max(chunk_sub))
@@ -54,49 +54,49 @@ for(i in 1:length(chunks)){
                      fromID = fromPlace_sub$Zone_Code,
                      toID = toPlace_sub$Zone_Code, 
                      date_time = lubridate::ymd_hms("2021/10/28 08:00:00"),
-                     mode = c("WALK","BUS","FERRY"),
+                     mode = c("WALK","TRANSIT"),
                      maxWalkDistance = 10000,
-                     ncores = 30,
+                     ncores = 10,
                      distance_balance = TRUE,
                      get_geometry = FALSE)
   
   message(Sys.time()," Saving Results")
   
-  saveRDS(routes, paste0("data/ttmatrix/routes_bus_v3_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
+  saveRDS(routes, paste0("data/ttmatrix/routes_transit_chunk_",i,"_from_",min(chunk_sub),"_to_",max(chunk_sub),".Rds"))
   rm(routes, toPlace_sub, fromPlace_sub)
   
 }
 
 # Bonus Route for hard to reach places
 
-cents_bonus <- c("E02004289", "E02004276", "E02004266",
-                 "W02000143", "E02006301",
-                 "E02006293", "W02000107", "E02002905", "E02006263", "W02000102",
-                 "E02005504", "E02005791", "E02004007", "E02005761", "E02004022",
-                 "E02004023", "E02006101", "E02005727", "S99900492", "S99900362",
-                 "S99900403", "S99900409", "S99900303", "S99900394", "S99900321",
-                 "E02006117", "E02006113")
-cents_bonus <- cents_bonus[!cents_bonus %in% ntem_cluster$Zone_Code]
-ntem_cents <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
-cents_bonus <- ntem_cents[ntem_cents$Zone_Code %in% cents_bonus,]
-
-
-fromPlace = cents_bonus[rep(seq(1, nrow(cents_bonus)), each  = nrow(ntem_cluster)),]
-toPlace   = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), times = nrow(cents_bonus)),]
-
-routes <- otp_plan(otpcon, 
-                   fromPlace = fromPlace,
-                   toPlace = toPlace,
-                   fromID = fromPlace$Zone_Code,
-                   toID = toPlace$Zone_Code, 
-                   date_time = lubridate::ymd_hms("2021/10/21 08:00:00"), # Week earlier for Filixstow
-                   mode = c("WALK","BUS"),
-                   maxWalkDistance = 10000,
-                   ncores = 30,
-                   distance_balance = TRUE,
-                   get_geometry = FALSE)
-
-saveRDS(routes, paste0("data/ttmatrix/routes_bus_v2_bonus.Rds"))
+# cents_bonus <- c("E02004289", "E02004276", "E02004266",
+#                  "W02000143", "E02006301",
+#                  "E02006293", "W02000107", "E02002905", "E02006263", "W02000102",
+#                  "E02005504", "E02005791", "E02004007", "E02005761", "E02004022",
+#                  "E02004023", "E02006101", "E02005727", "S99900492", "S99900362",
+#                  "S99900403", "S99900409", "S99900303", "S99900394", "S99900321",
+#                  "E02006117", "E02006113")
+# cents_bonus <- cents_bonus[!cents_bonus %in% ntem_cluster$Zone_Code]
+# ntem_cents <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+# cents_bonus <- ntem_cents[ntem_cents$Zone_Code %in% cents_bonus,]
+# 
+# 
+# fromPlace = cents_bonus[rep(seq(1, nrow(cents_bonus)), each  = nrow(ntem_cluster)),]
+# toPlace   = ntem_cluster[rep(seq(1, nrow(ntem_cluster)), times = nrow(cents_bonus)),]
+# 
+# routes <- otp_plan(otpcon, 
+#                    fromPlace = fromPlace,
+#                    toPlace = toPlace,
+#                    fromID = fromPlace$Zone_Code,
+#                    toID = toPlace$Zone_Code, 
+#                    date_time = lubridate::ymd_hms("2021/10/21 08:00:00"), # Week earlier for Filixstow
+#                    mode = c("WALK","BUS"),
+#                    maxWalkDistance = 10000,
+#                    ncores = 30,
+#                    distance_balance = TRUE,
+#                    get_geometry = FALSE)
+# 
+# saveRDS(routes, paste0("data/ttmatrix/routes_bus_v2_bonus.Rds"))
 
 
 message(Sys.time()," Killing OTP")

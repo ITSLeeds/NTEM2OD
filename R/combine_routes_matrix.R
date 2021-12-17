@@ -1,10 +1,10 @@
 # Inputs
 
-ttmat_text = "ttmatrix_cycle_chunk_"
-routes_text = ""
-out_text = "data/ttmatrix/final/cycle.csv"
+ttmat_text = "ttmatrix_car_chunk_"
+routes_text = "routes_car_chunk_"
+out_text = "data/ttmatrix/final/car_with_routes.csv"
 threshold = 5
-with_routes = FALSE
+with_routes = TRUE
 
 if(with_routes){
   # Read in routes
@@ -23,8 +23,10 @@ if(with_routes){
   mat_route <- data.frame(fromPlace = rep(unique(res$fromPlace), each = length(unique(res$toPlace))),
                           toPlace = rep(unique(res$toPlace), times = length(unique(res$fromPlace))))
   mat_route <- left_join(mat_route, res, by = c("fromPlace","toPlace"))
-  mat_route <- matrix(mat_route$duration, ncol = length(unique(res$fromPlace)),
-                      dimnames = list(unique(mat_route$toPlace), unique(mat_route$fromPlace)))
+  mat_route <- t(stplanr::od_to_odmatrix(mat_route))
+  
+  # mat_route <- matrix(mat_route$duration, ncol = length(unique(res$fromPlace)),
+  #                     dimnames = list(unique(mat_route$toPlace), unique(mat_route$fromPlace)))
 }
 
 # Read tin ttmatrix
@@ -78,4 +80,93 @@ newmat4 <- odmatrix_interpolate(newmat3, threshold) # 32h
 nmna <- as.logical(is.na(newmat4))
 message(sum(nmna)/length(nmna))
 
-saveRDS(newmat4,out_text)
+
+# Fixes for the Islands
+ferry_fix <- function(old, new, extra){
+  col <- newmat4[,old]
+  col <- ifelse(is.na(col), newmat4[,new] + extra, col)
+  col
+}
+
+# Isle of Scilly
+newmat4[,"E02006781"] <- ferry_fix("E02006781","E02003949", 9900)
+newmat4[,"E02003949"] <- ferry_fix("E02003949","E02006781", 9900)
+
+# Outer Hebrides
+newmat4[,"S99900328"] <- ferry_fix("S99900328","S99900119", 8400)
+newmat4[,"S99900498"] <- ferry_fix("S99900498","S99900119", 19380)
+newmat4[,"S99900499"] <- ferry_fix("S99900499","S99900119", 20820)
+newmat4[,"S99900207"] <- ferry_fix("S99900207","S99900119", 20820)
+
+newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900328", 8400)
+newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900498", 19380)
+newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900499", 20820)
+newmat4[,"S99900119"] <- ferry_fix("S99900119","S99900207", 20820)
+
+# Isle Of Wight
+newmat4[,"E02003592"] <- ferry_fix("E02003592","E02003547", 4680)
+newmat4[,"E02003593"] <- ferry_fix("E02003593","E02003547", 4680)
+newmat4[,"E02003591"] <- ferry_fix("E02003591","E02003547", 4680)
+newmat4[,"E02003588"] <- ferry_fix("E02003588","E02003547", 4680)
+newmat4[,"E02003589"] <- ferry_fix("E02003589","E02003547", 4680)
+newmat4[,"E02003582"] <- ferry_fix("E02003582","E02003547", 4680)
+newmat4[,"E02003581"] <- ferry_fix("E02003581","E02003547", 4680)
+newmat4[,"E02003583"] <- ferry_fix("E02003583","E02003547", 4680)
+newmat4[,"E02003585"] <- ferry_fix("E02003585","E02003547", 4680)
+newmat4[,"E02003586"] <- ferry_fix("E02003586","E02003547", 4680)
+newmat4[,"E02003584"] <- ferry_fix("E02003584","E02003547", 4680)
+newmat4[,"E02003587"] <- ferry_fix("E02003587","E02003547", 4680)
+newmat4[,"E02003590"] <- ferry_fix("E02003590","E02003547", 4680)
+newmat4[,"E02003594"] <- ferry_fix("E02003594","E02003547", 4680)
+newmat4[,"E02003595"] <- ferry_fix("E02003595","E02003547", 4680)
+newmat4[,"E02003596"] <- ferry_fix("E02003596","E02003547", 4680)
+newmat4[,"E02003597"] <- ferry_fix("E02003597","E02003547", 4680)
+newmat4[,"E02003598"] <- ferry_fix("E02003598","E02003547", 4680)
+
+newmat4[,"E02003547"] <- ferry_fix("E02003547","E02003585", 4680)
+
+#Shetland
+newmat4[,"S99900179"] <- ferry_fix("S99900179","S99900180", 1560)
+
+newmat5 <- odmatrix_interpolate(newmat4, 1) # Final Pass
+nmna <- as.logical(is.na(newmat5))
+message(sum(nmna)/length(nmna))
+
+
+# fill in with reverse direction
+
+mat_t <- t(newmat5)
+newmat6 <- ifelse(is.na(newmat5), mat_t, newmat5)
+
+ferry_fix <- function(old, new, extra){
+  col <- newmat6[,old]
+  col <- ifelse(is.na(col), newmat6[,new] + extra, col)
+  col
+}
+
+
+newmat6[,"S99900179"] <- ferry_fix("S99900179","S99900180", 1560)
+
+mat_t <- t(newmat6)
+newmat7 <- ifelse(is.na(newmat6), mat_t, newmat6)
+
+nmna <- as.logical(is.na(newmat7))
+message(sum(nmna)/length(nmna))
+
+csum <- colSums(is.na(newmat7))
+
+write.csv(newmat7,out_text)
+
+
+# check for missing
+ntem <- st_read("data/NTEM/NTEM_centroids_mod.geojson")
+
+csum <- colSums(is.na(newmat6))
+csum <- csum[csum > 0]
+
+qtm(ntem[ntem$Zone_Code %in% names(csum),])
+
+
+rsum <- rowSums(is.na(newmat6))
+rsum <- rsum[rsum > 0] 
+qtm(ntem[ntem$Zone_Code %in% names(rsum),])
