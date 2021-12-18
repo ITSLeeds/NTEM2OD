@@ -3,7 +3,7 @@ library(tidyr)
 library(dplyr)
 
 
-dat = read.csv("../../SDCA-tool/sdca-NTS/data/output/results_mode_purpose_LonnotLon_rural_urb_v2.csv")
+dat = read.csv("../../SDCA-tool/sdca-NTS/data/output/results_NTS_curves_funcs_NTEM_mode_purp_lon_not_Rural_urb.csv")
 #dat <- dat[!is.na(dat$rural_urb),]
 
 perms = crossing(mode = unique(dat$mode),
@@ -24,9 +24,10 @@ allowed_modes = c("Walk","Bicycle","Car / van driver","Car / van passenger","rai
 perms <- perms[perms$mode %in% allowed_modes,]
 
 # Limit to NTEM journey purpose
-allowed_purpose = c("Business","Commuting","Education / escort education",
-                    "Leisure","Personal business","Shopping")
-perms <- perms[perms$purpose %in% allowed_purpose,]
+# allowed_purpose = c("Business","Commuting","Education / escort education",
+#                     "Leisure","Personal business","Shopping")
+# perms <- perms[perms$purpose %in% allowed_purpose,]
+
 
 # Function for a curve
 prob_curve <- function(x, a = 0.06756, b = 5.29572, c = 5){
@@ -48,11 +49,11 @@ for(i in 1:nrow(perms)){
   
   if(nrow(dat_sub) > 0){
     if(any(duplicated(dat_sub$bin5mins))){
-      message("Duplicated time bins for: ",paste(unlist(per_sub), collapse = " "))
+      message(i," Duplicated time bins for: ",paste(unlist(per_sub), collapse = " "))
       dat_sub <- dat_sub[!duplicated(dat_sub$bin5mins),]
     }
     if(length(unique(dat_sub$bin_proportion)) < 3){
-      message("Insuffcient data for: ",paste(unlist(per_sub), collapse = " "))
+      message(i," Insuffcient data for: ",paste(unlist(per_sub), collapse = " "))
       per_sub$a = NA
       per_sub$b = NA
       per_sub$c = NA
@@ -62,44 +63,80 @@ for(i in 1:nrow(perms)){
     } else {
       dat_sub$time <- dat_sub$bin5mins * 5 - 2.5
       
+      plot(dat_sub$time, dat_sub$bin_proportion)
+      lines(dat_sub$time, prob_curve(dat_sub$time))
+      lines(dat_sub$time, dat_sub$pred_bin_propn)
+      plot(dat_sub$time, dat_sub$cumulative_proportion)
       
-      nlc <- nls.control(maxiter = 1000, warnOnly = TRUE)
-      model_prop <- nls(bin_proportion ~ prob_curve(time,a,b,c), 
+      
+      nlc <- nls.control(maxiter = 1000, warnOnly = FALSE)
+      model_prop <- try(nls(bin_proportion ~ prob_curve(time,a,b,c), 
                         data = dat_sub,
                         control = nlc,
-                        start=list(a=0.06756,b=5.29572,c = 5))
-      model_cum <- nls(pred_bin_propn ~ prob_curve(time,a,b,c),
-                       data = dat_sub,
-                       control = nlc,
-                       start=list(a=0.06756,b=5.29572,c = 5))
-      
-      
-      err_prop <- sum(abs(dat_sub$bin_proportion - prob_curve(dat_sub$time, 
-                                                              coefficients(model_prop)["a"],
-                                                              coefficients(model_prop)["b"],
-                                                              coefficients(model_prop)["c"])))
-      err_cum <- sum(abs(dat_sub$bin_proportion - prob_curve(dat_sub$time, 
-                                                             coefficients(model_cum)["a"],
-                                                             coefficients(model_cum)["b"],
-                                                             coefficients(model_cum)["c"])))
-      
-      if(err_prop < err_cum){
-        #message("Using main model for: ",paste(unlist(per_sub), collapse = ", ")," Error is ",round(err_prop * 100,4),"%")
-        model <- model_prop
-      } else {
-        #message("Using backup model for: ",paste(unlist(per_sub), collapse = ", ")," Error is ",round(err_cum * 100,4),"%")
-        model <- model_cum
+                        start=list(a=0.06756,b=5.29572,c = 5)), silent = TRUE)
+      # First fail try some different start values
+      if("try-error" %in% class(model_prop)){
+        model_prop <- try(nls(bin_proportion ~ prob_curve(time,a,b,c), 
+                              data = dat_sub,
+                              control = nlc,
+                              start=list(a=0.02603,b=9.79523,c = 4.56921)), silent = TRUE)
       }
       
-      # if(err > 0.1){
-      #   message("Model error for: ",paste(unlist(per_sub), collapse = ", ")," is ",round(sum(residuals(model)) * 100, 3),"%")
-      # }
+      model_cum <- try(nls(pred_bin_propn ~ prob_curve(time,a,b,c),
+                       data = dat_sub,
+                       control = nlc,
+                       start=list(a=0.06756,b=5.29572,c = 5)), silent = TRUE)
       
-      per_sub$a = coefficients(model)["a"]
-      per_sub$b = coefficients(model)["b"]
-      per_sub$c = coefficients(model)["c"]
-      per_sub$error_main <- round(err_prop * 100, 5)
-      per_sub$error_backup <- round(err_cum * 100, 5)
+      if("try-error" %in% class(model_prop)){
+        message("failed to build prop model for ",paste(unlist(per_sub), collapse = " "))
+        err_prop = 99999999999
+      } else {
+        err_prop <- sum(abs(dat_sub$bin_proportion - prob_curve(dat_sub$time, 
+                                                                coefficients(model_prop)["a"],
+                                                                coefficients(model_prop)["b"],
+                                                                coefficients(model_prop)["c"])))
+      }
+      if("try-error" %in% class(model_cum)){
+        message("failed to build cum model for ",paste(unlist(per_sub), collapse = " "))
+        err_cum = 99999999999
+      } else {
+        err_cum <- sum(abs(dat_sub$bin_proportion - prob_curve(dat_sub$time, 
+                                                               coefficients(model_cum)["a"],
+                                                               coefficients(model_cum)["b"],
+                                                               coefficients(model_cum)["c"])))
+      }
+      
+      if(err_prop == 99999999999 & err_cum == 99999999999){
+        message("Bad data for: ",paste(unlist(per_sub), collapse = " "))
+        per_sub$a = NA
+        per_sub$b = NA
+        per_sub$c = NA
+        per_sub$error_main <- NA
+        per_sub$error_backup <- NA
+        
+      } else {
+        if(err_prop < err_cum){
+          #message("Using main model for: ",paste(unlist(per_sub), collapse = ", ")," Error is ",round(err_prop * 100,4),"%")
+          model <- model_prop
+        } else {
+          #message("Using backup model for: ",paste(unlist(per_sub), collapse = ", ")," Error is ",round(err_cum * 100,4),"%")
+          model <- model_cum
+        }
+        
+        # if(err > 0.1){
+        #   message("Model error for: ",paste(unlist(per_sub), collapse = ", ")," is ",round(sum(residuals(model)) * 100, 3),"%")
+        # }
+        
+        per_sub$a = coefficients(model)["a"]
+        per_sub$b = coefficients(model)["b"]
+        per_sub$c = coefficients(model)["c"]
+        per_sub$error_main <- round(err_prop * 100, 5)
+        per_sub$error_backup <- round(err_cum * 100, 5)
+      }
+      
+      
+      
+      
     }
     
     
@@ -108,7 +145,7 @@ for(i in 1:nrow(perms)){
     
     
   } else {
-    #message("No data for: ",paste(unlist(per_sub), collapse = ", "))
+    message("No data for: ",paste(unlist(per_sub), collapse = ", "))
     
     per_sub$a = NA
     per_sub$b = NA
@@ -130,28 +167,98 @@ res_missing <- res[is.na(res$a),]
 res <- res[!is.na(res$a),]
 
 for(i in 1:nrow(res_missing)){
-  res_missing$a[i] <- res$a[res$mode == res_missing$mode[i] &
-                              res$purpose == res_missing$purpose[i] &
-                              res$region == "London" &
-                              res$rural_urb == "Urban"]
-  res_missing$b[i] <- res$b[res$mode == res_missing$mode[i] &
-                              res$purpose == res_missing$purpose[i] &
-                              res$region == "London" &
-                              res$rural_urb == "Urban"]
-  res_missing$c[i] <- res$c[res$mode == res_missing$mode[i] &
-                              res$purpose == res_missing$purpose[i] &
-                              res$region == "London" &
-                              res$rural_urb == "Urban"]
+  a <- res$a[res$mode == res_missing$mode[i] &
+               res$purpose == res_missing$purpose[i] &
+               res$region == "London" &
+               res$rural_urb == "Urban"]
+  b <- res$b[res$mode == res_missing$mode[i] &
+               res$purpose == res_missing$purpose[i] &
+               res$region == "London" &
+               res$rural_urb == "Urban"]
+  c <- res$c[res$mode == res_missing$mode[i] &
+               res$purpose == res_missing$purpose[i] &
+               res$region == "London" &
+               res$rural_urb == "Urban"]
+  if(length(a) == 1){
+    res_missing$a[i] <- a
+    res_missing$b[i] <- b
+    res_missing$c[i] <- c
+  } else {
+    message("No london alternative for ",i)
+  }
+  
+  
 }
-
 res <- rbind(res, res_missing)
 
-saveRDS(res,"data/NTS/decay_curves.Rds")
+
+# res_missing <- res[is.na(res$a),]
+# res <- res[!is.na(res$a),]
+# 
+# # Fill in any other missing with same mode
+# 
+# for(i in 1:nrow(res_missing)){
+#   alt_values <- res[res$mode == res_missing$mode[i] &
+#                       res$purpose == res_missing$purpose[i],]
+#   
+#   if(nrow(alt_values) == 0){
+#     alt_values <- res[res$mode == res_missing$mode[i],]
+#   }
+#   
+#   alt_values <- alt_values[!is.na(alt_values$error_main),]
+#   alt_values <- alt_values[alt_values$error_main == min(alt_values$error_main, na.rm = TRUE),]
+#   alt_values <- alt_values[1,]
+#   
+#   a <- alt_values$a
+#   b <- alt_values$b
+#   c <- alt_values$c
+#   
+#   if(length(a) == 1){
+#     res_missing$a[i] <- a
+#     res_missing$b[i] <- b
+#     res_missing$c[i] <- c
+#   } else {
+#     message("No alternative for ",i)
+#   }
+#   
+#   
+# }
+# 
+# res <- rbind(res, res_missing)
+
+saveRDS(res,"data/NTS/decay_curves_v2.Rds")
+
+# plot all the curves
+plot(1:300, prob_curve(1:300, res$a[1], res$b[1], res$c[1]), type = "l")
+
+for(i in 2:nrow(res)){
+  mode = res$mode[i]
+  if(mode == "Bicycle"){
+    col = "green"
+  } else if(mode == "bus"){
+    col = "blue"
+  } else if(mode == "Car / van driver"){
+    col = "red"
+  } else if(mode == "Car / van passenger"){
+    col = "orange"
+  } else if(mode == "rail"){
+    col = "purple"
+  } else if(mode == "Walk"){
+    col = "grey"
+  }
+  
+  lines(1:300, prob_curve(1:300, res$a[i], res$b[i], res$c[i]), col = col)
+}
+
+
+
+
+
 
 # Plot some examples
 # Low Error
 mode = "Car / van passenger"
-purpose = "Education / escort education"
+purpose = "Home Based Education"
 region = "Not London"
 rural_urb = "Urban"
 
@@ -173,9 +280,9 @@ plot(dat_sub$time, dat_sub$bin_proportion)
                                  c = res_sub$c))
 
 # high error
-mode = "bus"
-purpose = "Business"
-region = "Not London"
+mode = "Walk"
+purpose = "Not Home Based Recreation/Social"
+region = "London"
 rural_urb = "Rural"
 
 
@@ -198,7 +305,7 @@ lines(dat_sub$time, prob_curve(dat_sub$time,
 
 # med error
 mode = "rail"
-purpose = "Shopping"
+purpose = "Home Based Shopping"
 region = "Not London"
 rural_urb = "Urban"
 
@@ -222,7 +329,7 @@ lines(dat_sub$time, prob_curve(dat_sub$time,
   
 # missing
 mode = "rail"
-purpose = "Personal business"
+purpose = "Home Based Personal Business"
 region = "London"
 rural_urb = "Urban"
 
