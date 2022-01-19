@@ -1,0 +1,47 @@
+---
+output: github_document
+---
+
+# NTEM2OD
+
+This repo contains scripts and (in the releases) data to convert the National Trip Ends Model (NTEM) into an Origin-Destination (OD) Matrix.
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(tidyverse)
+library(tmap)
+tmap_mode("view")
+```
+
+```{r, eval=FALSE, echo=FALSE}
+# piggyback::pb_list()
+# piggyback::pb_download("NTEM_desire_lines.zip")
+# unzip("NTEM_desire_lines.zip")
+# desire_lines = sf::read_sf("NTEM_desire_lines.geojson")
+desire_lines = geojsonsf::geojson_sf("NTEM_desire_lines.geojson")
+desire_lines_top_drive = desire_lines %>% 
+  top_n(1000, drive)
+sf::write_sf(desire_lines_top_drive, "desire_lines_top_drive.geojson")
+piggyback::pb_upload("desire_lines_top_drive.geojson")
+desire_lines_top_cycle = desire_lines %>% 
+  top_n(1000, cycle)
+sf::write_sf(desire_lines_top_cycle, "desire_lines_top_cycle.geojson")
+piggyback::pb_upload("desire_lines_top_cycle.geojson")
+```
+
+After downloading test datasets and loading the `tidyverse` you should be able to run the following to test the outputs, as geographic 'desire lines' between zone (MSOA) centroids:
+
+
+```{r}
+desire_lines_top_drive = sf::read_sf("desire_lines_top_drive.geojson")
+desire_lines_top_drive %>% 
+  qtm()
+desire_lines_top_cycle = sf::read_sf("desire_lines_top_cycle.geojson")
+desire_lines_top_cycle %>% 
+  qtm()
+```
