@@ -254,3 +254,6 @@ data/ttmatrix/ttmatrix_walk_chunk_8_from_7001_to_7700.Rds
 data/GTFS/SE_20211012.zip
 data/GTFS/WM_20211012.zip
 data/GTFS/Y_20211012.zip
+*.pdf
+*.geojson
+*.zip
