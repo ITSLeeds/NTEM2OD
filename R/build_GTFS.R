@@ -153,8 +153,12 @@ gtfs <- transxchange2gtfs("D:/OneDrive - University of Leeds/Data/UK2GTFS/TransX
                           cal = cal,
                           naptan = naptan, 
                           force_merge = TRUE,
-                          ncores = 20)
+                          ncores = 20, try_mode = FALSE)
 gtfs <- gtfs_clean(gtfs)
 gtfs <- gtfs_interpolate_times(gtfs, 20)
 gtfs_validate_internal(gtfs)
 gtfs_write(gtfs, "data/GTFS", name = "Y_20211012")
+
+
+foo = UK2GTFS:::gtfs_stops_sf(gtfs)
+

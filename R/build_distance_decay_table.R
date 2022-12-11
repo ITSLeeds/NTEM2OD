@@ -229,7 +229,10 @@ res <- rbind(res, res_missing)
 saveRDS(res,"data/NTS/decay_curves_v2.Rds")
 
 # plot all the curves
-plot(1:300, prob_curve(1:300, res$a[1], res$b[1], res$c[1]), type = "l")
+plot(1:200, prob_curve(1:200, res$a[1], res$b[1], res$c[1]), 
+     type = "l", col = "green",
+     xlab = "Travel time (minutes)", ylab = "Proportion of trips",
+     main = "Decay curves for all modes, purposes, and locations")
 
 for(i in 2:nrow(res)){
   mode = res$mode[i]
@@ -247,7 +250,7 @@ for(i in 2:nrow(res)){
     col = "grey"
   }
   
-  lines(1:300, prob_curve(1:300, res$a[i], res$b[i], res$c[i]), col = col)
+  lines(1:200, prob_curve(1:200, res$a[i], res$b[i], res$c[i]), col = col)
 }
 
 
@@ -320,7 +323,9 @@ res_sub <- res[res$mode == mode &
                  res$purpose == purpose &
                  res$region == region &
                  res$rural_urb == rural_urb,]
-plot(dat_sub$time, dat_sub$bin_proportion)
+plot(dat_sub$time, dat_sub$bin_proportion,
+     xlab = "Travel time (minutes)", ylab = "Proportion of trips",
+     main = "Home based shopping trips by rail \nfrom urban areas outside London")
 lines(dat_sub$time, prob_curve(dat_sub$time, 
                                a = res_sub$a,
                                b = res_sub$b,

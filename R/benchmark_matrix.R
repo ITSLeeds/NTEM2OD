@@ -309,22 +309,28 @@ mat_cycle = mat_cycle[rownames(mat_car), colnames(mat_car)]
 mat_walk = mat_walk[rownames(mat_car), colnames(mat_car)]
 mat_rail = mat_rail[rownames(mat_car), colnames(mat_car)]
 
-
+library(ggplot2)
 
 dur <- list()
 for(i in 1:1000){
   dur[[i]] <- mat_car[times_all$toPlace[i],times_all$fromPlace[i]]
 }
 times_all$car_mat <- unlist(dur)
-plot(times_all$car/3600, times_all$car_mat/3600)
+plot(times_all$car/3600, times_all$car_mat/3600, 
+     xlab = "Travel time (hours)", ylab = c("Estimated travel time (hours)"),
+     main = "Selected travel times by car",
+     xlim = c(0,14), ylim = c(0,14))
 abline(0,1, col = "red")
+summary(lm(times_all$car ~ times_all$car_mat))
 
 dur <- list()
 for(i in 1:1000){
   dur[[i]] <- mat_walk[times_all$toPlace[i],times_all$fromPlace[i]]
 }
 times_all$walk_mat <- unlist(dur)
-plot(times_all$walk/3600, times_all$walk_mat/3600)
+plot(times_all$walk/3600, times_all$walk_mat/3600,
+     xlab = "Travel time (hours)", ylab = c("Estimated travel time (hours)"),
+     main = "Selected travel times by walking")
 abline(0,1, col = "red")
 
 dur <- list()
@@ -332,7 +338,10 @@ for(i in 1:1000){
   dur[[i]] <- mat_cycle[times_all$toPlace[i],times_all$fromPlace[i]]
 }
 times_all$cycle_mat <- unlist(dur)
-plot(times_all$cycle/3600, times_all$cycle_mat/3600)
+plot(times_all$cycle/3600, times_all$cycle_mat/3600, 
+     xlab = "Travel time (hours)", ylab = c("Estimated travel time (hours)"),
+     main = "Selected travel times by bicycle",
+     xlim = c(0,70), ylim = c(0,70))
 abline(0,1, col = "red")
 
 dur <- list()
@@ -340,15 +349,22 @@ for(i in 1:1000){
   dur[[i]] <- mat_bus[times_all$toPlace[i],times_all$fromPlace[i]]
 }
 times_all$bus_mat <- unlist(dur)
-plot(times_all$bus/3600, times_all$bus_mat/3600)
+plot(times_all$bus/3600, times_all$bus_mat/3600, 
+     xlab = "Travel time (hours)", ylab = c("Estimated travel time (hours)"),
+     main = "Selected travel times by bus",
+      xlim = c(0,40), ylim = c(0,40))
 abline(0,1, col = "red")
+summary(lm(times_all$bus ~ times_all$bus_mat))
 
 dur <- list()
 for(i in 1:1000){
   dur[[i]] <- mat_rail[times_all$toPlace[i],times_all$fromPlace[i]]
 }
 times_all$rail_mat <- unlist(dur)
-plot(times_all$rail/3600, times_all$rail_mat/3600)
+plot(times_all$rail/3600, times_all$rail_mat/3600, 
+     xlab = "Travel time (hours)", ylab = c("Estimated travel time (hours)"),
+     main = "Selected travel times by rail", 
+     xlim = c(0,16), ylim = c(0,16))
 abline(0,1, col = "red")
 
 
